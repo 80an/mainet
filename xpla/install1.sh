@@ -44,8 +44,10 @@ go version
 
 # Установка XPLA node
 echo "\e[1m\e[32m### Установка $PROJECT_NAME node...\e[0m"
-git clone -b $VERSION https://github.com/xpladev/xpla xpla
-cd xpla
+if [ ! -d "$HOME/xpla" ]; then
+    git clone -b $VERSION https://github.com/xpladev/xpla xpla
+fi
+cd $HOME/xpla
 git checkout $VERSION
 make install
 sudo mv $HOME/go/bin/xplad /usr/local/bin/
@@ -56,7 +58,7 @@ cd $HOME
 xplad config chain-id $CHAIN_ID
 xplad config keyring-backend os
 xplad config node tcp://localhost:$RPC_PORT
-xplad init $MONIKER --chain-id $CHAIN_ID
+xplad init $MONIKER --chain-id $CHAIN_ID -o
 
 # Получение genesis файла
 wget -O $HOME/.xpla/config/genesis.json https://snapshots.polkachu.com/genesis/xpla/genesis.json --inet4-only
