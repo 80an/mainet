@@ -23,7 +23,7 @@ source ~/.bash_profile
 # Установка зависимостей
 echo "\e[1m\e[32m### Установка зависимостей...\e[0m"
 sudo apt update && \
-sudo apt install curl git jq build-essential gcc unzip wget lz4 -y
+sudo apt install curl git jq build-essential gcc unzip wget lz4 make -y
 
 # Установка Go v1.23.4
 cd $HOME
@@ -49,8 +49,15 @@ if [ ! -d "$HOME/xpla" ]; then
 fi
 cd $HOME/xpla
 git checkout $VERSION
-make install
-sudo mv $HOME/go/bin/xplad /usr/local/bin/
+make install || { echo "Ошибка при сборке xplad"; exit 1; }
+
+if [ -f "$HOME/go/bin/xplad" ]; then
+    sudo mv $HOME/go/bin/xplad /usr/local/bin/
+else
+    echo "Бинарник xplad не найден!"
+    exit 1
+fi
+
 source ~/.bash_profile
 
 # Инициализация ноды
@@ -66,7 +73,13 @@ wget -O $HOME/.xpla/config/genesis.json https://snapshots.polkachu.com/genesis/x
 # Настройка peers и seeds
 PEERS="1aee2ab827530e2fe8163581d8fe88ad78401d43@144.76.107.29:26656,e2e9ddf939c230207270ec61dc8676d695299fd0@167.86.116.235:26656"
 SEEDS="59df4b3832446cd0f9c369da01f2aa5fe9647248@162.55.65.137:27956"
-sed -i.bak -e "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" -e "s/^seeds *=.*/seeds = \"$SEEDS\"/" $HOME/.xpla/config/config.toml
+
+if [ -f "$HOME/.xpla/config/config.toml" ]; then
+    sed -i.bak -e "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" -e "s/^seeds *=.*/seeds = \"$SEEDS\"/" $HOME/.xpla/config/config.toml
+else
+    echo "Файл config.toml отсутствует!"
+    exit 1
+fi
 
 # Конфигурация портов
 EXTERNAL_IP=$(wget -qO- eth0.me)
@@ -76,10 +89,15 @@ sed -i \
     $HOME/.xpla/config/config.toml
 
 # Оптимизация pruning
-sed -i.bak -e "s/^pruning *=.*/pruning = \"custom\"/" \
-           -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"100\"/" \
-           -e "s/^pruning-interval *=.*/pruning-interval = \"10\"/" \
-           $HOME/.xpla/config/app.toml
+if [ -f "$HOME/.xpla/config/app.toml" ]; then
+    sed -i.bak -e "s/^pruning *=.*/pruning = \"custom\"/" \
+               -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"100\"/" \
+               -e "s/^pruning-interval *=.*/pruning-interval = \"10\"/" \
+               $HOME/.xpla/config/app.toml
+else
+    echo "Файл app.toml отсутствует!"
+    exit 1
+fi
 
 # Создание systemd сервиса
 sudo tee /etc/systemd/system/xpla.service > /dev/null <<EOF
