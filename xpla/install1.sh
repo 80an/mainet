@@ -27,7 +27,7 @@ sudo apt install curl git jq build-essential gcc unzip wget lz4 -y
 
 # Установка Go
 cd $HOME
-ver=$(curl -s https://go.dev/VERSION?m=text | head -n 1 | cut -d "o" -f 2)
+ver="1.23.4"
 sudo rm -rvf /usr/local/go/
 wget "https://golang.org/dl/go${ver}.linux-amd64.tar.gz"
 sudo tar -C /usr/local -xzf "go${ver}.linux-amd64.tar.gz"
