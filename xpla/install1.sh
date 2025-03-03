@@ -20,6 +20,16 @@ echo "export WALLET_NAME=\"$WALLET_NAME\"" >> ~/.bash_profile
 echo "export RPC_PORT=\"$RPC_PORT\"" >> ~/.bash_profile
 source ~/.bash_profile
 
+# Ожидание разблокировки apt
+while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+    echo "Ожидание разблокировки dpkg..."
+    sleep 5
+done
+while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    echo "Ожидание разблокировки dpkg (frontend)..."
+    sleep 5
+done
+
 # Установка зависимостей
 echo "\e[1m\e[32m### Установка зависимостей...\e[0m"
 sudo apt update && \
@@ -68,7 +78,7 @@ xplad config node tcp://localhost:$RPC_PORT
 xplad init $MONIKER --chain-id $CHAIN_ID -o
 
 # Получение genesis файла
-wget -O $HOME/.xpla/config/genesis.json https://snapshots.polkachu.com/genesis/xpla/genesis.json --inet4-only
+wget -O $HOME/.xpla/config/genesis.json https://snapshots.polkachu.com/genesis/xpla/genesis.json --inet4-only || echo "Не удалось скачать genesis.json"
 
 # Настройка peers и seeds
 PEERS="1aee2ab827530e2fe8163581d8fe88ad78401d43@144.76.107.29:26656,e2e9ddf939c230207270ec61dc8676d695299fd0@167.86.116.235:26656"
@@ -77,16 +87,15 @@ SEEDS="59df4b3832446cd0f9c369da01f2aa5fe9647248@162.55.65.137:27956"
 if [ -f "$HOME/.xpla/config/config.toml" ]; then
     sed -i.bak -e "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" -e "s/^seeds *=.*/seeds = \"$SEEDS\"/" $HOME/.xpla/config/config.toml
 else
-    echo "Файл config.toml отсутствует!"
-    exit 1
+    echo "Файл config.toml отсутствует! Создайте его вручную."
 fi
 
 # Конфигурация портов
 EXTERNAL_IP=$(wget -qO- eth0.me)
 P2P_PORT=26656
-sed -i \
-    -e "s/^external_address *=.*/external_address = \"$EXTERNAL_IP:$P2P_PORT\"/" \
-    $HOME/.xpla/config/config.toml
+if [ -f "$HOME/.xpla/config/config.toml" ]; then
+    sed -i -e "s/^external_address *=.*/external_address = \"$EXTERNAL_IP:$P2P_PORT\"/" $HOME/.xpla/config/config.toml
+fi
 
 # Оптимизация pruning
 if [ -f "$HOME/.xpla/config/app.toml" ]; then
@@ -95,8 +104,7 @@ if [ -f "$HOME/.xpla/config/app.toml" ]; then
                -e "s/^pruning-interval *=.*/pruning-interval = \"10\"/" \
                $HOME/.xpla/config/app.toml
 else
-    echo "Файл app.toml отсутствует!"
-    exit 1
+    echo "Файл app.toml отсутствует! Создайте его вручную."
 fi
 
 # Создание systemd сервиса
