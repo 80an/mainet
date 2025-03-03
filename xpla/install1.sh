@@ -25,7 +25,7 @@ echo "\e[1m\e[32m### Установка зависимостей...\e[0m"
 sudo apt update && \
 sudo apt install curl git jq build-essential gcc unzip wget lz4 -y
 
-# Установка Go
+# Установка Go v1.23.4
 cd $HOME
 ver="1.23.4"
 sudo rm -rvf /usr/local/go/
